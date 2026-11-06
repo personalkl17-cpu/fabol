@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defensa Policial - Modo Diapositiva Única</title>
+    <style>
+        :root {
+            --primary-color: #1a3a5c;
+            --secondary-color: #2c5f8a;
+            --accent-color: #d4af37;
+            --bg-color: #f4f7f9;
+            --text-color: #333;
+            --white: #ffffff;
+            --intro-bg: #eef4fb;
+            --intro-border: #2c5f8a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Evita scroll general */
+            position: relative;
+        }
+
+        /* --- BOTONES FLOTANTES --- */
+        .floating-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-float {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn-float:hover { background-color: var(--secondary-color); }
+        .btn-float:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .menu-toggle-float {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* --- MENÚ LATERAL --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 300px;
+            height: 100%;
+            background-color: var(--primary-color);
+            color: var(--white);
+            overflow-y: auto;
+            z-index: 1001;
+            transition: left 0.3s ease-in-out;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+        .sidebar.open { left: 0; }
+        .sidebar h2 { padding: 15px; text-align: center; font-size: 1rem; color: var(--accent-color); }
+        .sidebar ul { list-style: none; padding-bottom: 20px; }
+        .sidebar li {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+        .sidebar li:hover { background-color: var(--secondary-color); }
+        .sidebar li.active { background-color: var(--accent-color); color: var(--primary-color); font-weight: bold; }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+        }
+        .overlay.active { display: block; }
+
+        /* --- CONTENEDOR PRINCIPAL (DIAPOSITIVA) --- */
+        .slide-container {
+            width: 100%;
+            height: 100%;
+            padding: 10px; /* Margen mínimo */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            flex-direction: row; /* Dos columnas */
+            gap: 15px;
+            overflow: hidden;
+        }
+        .slide.active { display: flex; }
+
+        /* --- COLUMNA IZQUIERDA --- */
+        .col-izq {
+            flex: 6; /* 60% del ancho */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Scroll interno solo si es extremo */
+            padding-right: 5px;
+        }
+
+        .col-izq h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            line-height: 1.2;
+        }
+
+        .introduccion {
+            background-color: var(--intro-bg);
+            border-left: 3px solid var(--intro-border);
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.75rem;
+            line-height: 1.25;
+            color: #2c3e50;
+        }
+
+        .mapa-conceptual {
+            background-color: #fafbfc;
+            border: 1px solid #e1e8ed;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            flex-grow: 1;
+            font-size: 0.7rem; /* Letra muy pequeña para el mapa */
+            line-height: 1.2;
+        }
+
+        .mapa-conceptual ul {
+            list-style-type: none;
+            padding-left: 8px;
+            border-left: 1px dashed #cbd5e1;
+            margin-left: 2px;
+        }
+        .mapa-conceptual > ul { padding-left: 0; border-left: none; margin-left: 0; }
+        .mapa-conceptual li { margin-bottom: 3px; position: relative; padding-left: 12px; }
+
+        .nodo-principal {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 0.75rem;
+            display: block;
+            margin-top: 4px;
+        }
+        .nodo-principal::before { content: "📁"; position: absolute; left: -4px; font-size: 0.7rem; }
+
+        .subtitulo-mapa { font-weight: bold; color: var(--secondary-color); display: block; }
+        .punto-referencial { color: #555; }
+        .punto-referencial::before { content: "•"; color: var(--accent-color); font-weight: bold; position: absolute; left: 2px; }
+
+        .guion {
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-style: italic;
+            font-size: 0.72rem;
+            line-height: 1.25;
+        }
+        .guion strong { color: #b7791f; font-style: normal; }
+
+        /* --- COLUMNA DERECHA (PREGUNTAS) --- */
+        .col-der {
+            flex: 4; /* 40% del ancho */
+            display: flex;
+            flex-direction: column;
+            background-color: #f8fafc;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto; /* Scroll interno para preguntas */
+            border-left: 2px solid #e2e8f0;
+        }
+
+        .col-der h3 {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+        }
+
+        details {
+            background-color: var(--white);
+            border: 1px solid #d0dbe8;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            padding: 6px 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.75rem;
+        }
+        details:hover { background-color: #f0f4f8; }
+        details[open] { background-color: #fff; border-color: var(--secondary-color); }
+        
+        summary {
+            font-weight: bold;
+            color: var(--primary-color);
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            line-height: 1.2;
+        }
+        summary::after { content: "▼"; font-size: 0.6rem; color: var(--secondary-color); }
+        details[open] summary::after { transform: rotate(180deg); }
+        
+        details p {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid #eee;
+            color: #444;
+            font-size: 0.72rem;
+            line-height: 1.2;
+        }
+
+        /* Scrollbars ultra finas */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--secondary-color); }
+
+        /* Ajuste para pantallas pequeñas */
+        @media (max-width: 1024px) {
+            .slide { flex-direction: column; overflow-y: auto; }
+            .col-izq, .col-der { flex: none; height: auto; overflow-y: visible; }
+            .col-der { margin-top: 10px; border-left: none; border-top: 2px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botón Menú -->
+    <button class="menu-toggle-float" onclick="toggleMenu()">☰ Temas</button>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <!-- Menú Lateral -->
+    <nav class="sidebar" id="sidebar">
+        <h2>Lista de Temas</h2>
+        <ul id="menu-list"></ul>
+    </nav>
+
+    <!-- Contenedor de Diapositivas -->
+    <div class="slide-container" id="slide-container">
+        <!-- Se genera con JS -->
+    </div>
+
+    <!-- Controles Inferiores -->
+    <div class="floating-controls">
+        <button class="btn-float" id="prev-btn" onclick="changeSlide(-1)">◀ Ant</button>
+        <span id="progress-info" style="font-size:0.8rem; font-weight:bold; color:var(--primary-color); display:flex; align-items:center;">1 / 15</span>
+        <button class="btn-float" id="next-btn" onclick="changeSlide(1)">Sig ▶</button>
+    </div>
+
+    <script>
+        // --- AQUÍ VAN LOS 15 TEMAS (Mismo contenido exacto) ---
+        const temas = [
+            {
+                titulo: "Tema 1: Doctrina e Historia Policial",
+                introduccion: "La presente unidad temática estudia la formación histórica de la institución policial boliviana y los elementos conceptuales que estructuran su doctrina. El análisis integra la evolución normativa, las transformaciones orgánicas, los principios, valores, deberes, fuentes y mecanismos de gestión doctrinal, con el propósito de comprender cómo la experiencia institucional se convierte en orientación para la conducta profesional y el servicio a la sociedad.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">HISTORIA Y EVOLUCIÓN INSTITUCIONAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Antecedentes Históricos, Fundación y Primer Marco Normativo</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">1.1. Época Precolombina: Mecanismos de control social (ayllu).</span></li>
+                                            <li><span class="punto-referencial">1.2. Colonia: Función policial dispersa (cabildos, corregidores).</span></li>
+                                            <li><span class="punto-referencial">1.3. Fundación (Ley Reglamentaria de 1826).</span></li>
+                                        </ul>
+                                    </li>
+                                    <li><span class="subtitulo-mapa">2. Evolución Institucional y Reformas Policiales</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">a) Gendarmería e Intendencia (1826).</span></li>
+                                            <li><span class="punto-referencial">b) Guardia Nacional (1831).</span></li>
+                                            <li><span class="punto-referencial">c) Cuerpo Nacional de Policías y Carabineros (1937).</span></li>
+                                            <li><span class="punto-referencial">d) Policía Boliviana (1961).</span></li>
+                                            <li><span class="punto-referencial">e) Guardia Nacional de Seguridad Pública (1965).</span></li>
+                                            <li><span class="punto-referencial">f) Policía Nacional (1967).</span></li>
+                                            <li><span class="punto-referencial">g) Policía Boliviana (2009): Misión constitucional.</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">DOCTRINA INSTITUCIONAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Dimensión de la Policía Boliviana</span></li>
+                                    <li><span class="subtitulo-mapa">4. Etimología de la Doctrina</span></li>
+                                    <li><span class="subtitulo-mapa">5. Definición:</span> <span class="punto-referencial">Sistema de principios, valores y normas.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Principios Institucionales:</span> <span class="punto-referencial">Legalidad, disciplina, jerarquía.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Valores Institucionales:</span> <span class="punto-referencial">Honor, honestidad, lealtad.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Características:</span> <span class="punto-referencial">Fundamental, organizada, jerarquizada.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Deontología Policial</span></li>
+                                    <li><span class="subtitulo-mapa">10. Deberes del Policía:</span> <span class="punto-referencial">Con la patria, institución, superiores, etc.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">FUENTES Y GESTIÓN DE LA DOCTRINA</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">11. Definición Doctrinal Consolidada</span></li>
+                                    <li><span class="subtitulo-mapa">12. Fuentes:</span> <span class="punto-referencial">Historia, normativa, tradiciones.</span></li>
+                                    <li><span class="subtitulo-mapa">13. Ciclo de la Doctrina:</span> <span class="punto-referencial">Diagnóstico, formulación, difusión.</span></li>
+                                    <li><span class="subtitulo-mapa">14. Gestión (PDCA):</span> <span class="punto-referencial">Planificar, Hacer, Verificar, Actuar.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 1 establece nuestra identidad. Comenzamos con una mirada histórica, desde las formas de control precolombinas hasta la fundación republicana con la Ley de 1826. Recorremos las reformas clave hasta llegar a la actual Policía Boliviana consolidada por la Constitución de 2009. Esta historia nos lleva a la Doctrina Institucional, que es un sistema de principios como la legalidad y valores como el honor. La doctrina define nuestros deberes y se nutre de fuentes como la historia y la ley, gestionándose con un ciclo de mejora continua (PDCA) para responder a las necesidades actuales.",
+                preguntas: [
+                    { p: "¿Cuál fue el primer marco normativo republicano que organizó las funciones policiales?", r: "La Ley Reglamentaria de 1826." },
+                    { p: "¿Qué reforma de 1937 representó un avance hacia la integración nacional?", r: "La creación del Cuerpo Nacional de Policías y Carabineros." },
+                    { p: "¿Cuál es la diferencia entre principios y valores institucionales?", r: "Los principios son fundamentos normativos que orientan la actuación (ej. legalidad), mientras que los valores son cualidades éticas que se interiorizan en la conducta (ej. honor)." },
+                    { p: "Mencione tres deberes del policía según la doctrina.", r: "Deberes con la disciplina, con la patria, con la institución, con los superiores, con los camaradas, etc." },
+                    { p: "¿Qué significa el ciclo PDCA en la gestión doctrinal?", r: "Planificar, Hacer, Verificar y Actuar. Es un modelo de mejora continua para actualizar y aplicar la doctrina institucional." }
+                ]
+            },
+            // --- TEMA 2 ---
+            {
+                titulo: "Tema 2: Patrullaje Policial",
+                introduccion: "El patrullaje policial constituye una de las expresiones más visibles y permanentes del servicio público de seguridad. Su relevancia no se limita a la circulación de efectivos en un territorio, sino que comprende un proceso técnico de observación, prevención, disuasión, intervención, comunicación y documentación. Según Sanabria Oropeza (2000), el patrullaje debe entenderse como una actividad organizada y continua, orientada a proteger a las personas, preservar el orden público y responder oportunamente ante hechos que afecten la convivencia social.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">FUNDAMENTOS Y MARCO JURÍDICO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Fundamentos y Principios:</span> <span class="punto-referencial">Legalidad, necesidad, proporcionalidad, visibilidad, proximidad.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Marco Jurídico:</span> <span class="punto-referencial">CPE (2009), Ley Orgánica (1985), Ley N.º 264, Código de Procedimiento Penal, Código de Conducta ONU.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">ORGANIZACIÓN Y MODALIDADES</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Organización y Planificación:</span> <span class="punto-referencial">Diagnóstico de riesgos, plan de patrullaje, supervisión.</span></li>
+                                    <li><span class="subtitulo-mapa">4. Objetivos, Funciones y Responsabilidades:</span> <span class="punto-referencial">Prevenir, auxiliar, documentar.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Clasificación y Técnicas:</span> <span class="punto-referencial">Por medio (a pie, motorizado), por ámbito (urbano, rural), técnicas de observación y aproximación.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Tipos:</span> <span class="punto-referencial">Urbano, rural, motorizado, a pie, especializado.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Patrullaje Comunitario:</span> <span class="punto-referencial">Proximidad, diagnóstico comunitario, solución colaborativa de problemas.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">OPERATIVIDAD Y COMUNICACIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">8. Comunicaciones y Radio Patrulla 110:</span> <span class="punto-referencial">Disciplina radial.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Seguridad Ciudadana y Prevención:</span> <span class="punto-referencial">Primaria, secundaria, terciaria, situacional.</span></li>
+                                    <li><span class="subtitulo-mapa">10. Derechos Humanos:</span> <span class="punto-referencial">Dignidad, no discriminación, protección a víctimas.</span></li>
+                                    <li><span class="subtitulo-mapa">11. Uso Progresivo de la Fuerza:</span> <span class="punto-referencial">Niveles de resistencia, armas de fuego, rendición de cuentas.</span></li>
+                                    <li><span class="subtitulo-mapa">12. Actuación Preventiva y Acción Directa:</span> <span class="punto-referencial">Evaluación inicial, prioridades.</span></li>
+                                    <li><span class="subtitulo-mapa">13. Flagrancia y Preservación del Lugar:</span> <span class="punto-referencial">Aprehensión, cadena de custodia.</span></li>
+                                    <li><span class="subtitulo-mapa">14. Elaboración de Informes:</span> <span class="punto-referencial">Objetividad, claridad, estructura.</span></li>
+                                    <li><span class="subtitulo-mapa">15. Ética y Responsabilidad:</span> <span class="punto-referencial">Administrativa, penal, civil.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 2 se centra en el patrullaje, la expresión más visible de nuestro servicio. No es solo caminar o conducir; es un proceso técnico basado en principios como la legalidad y la proporcionalidad. Planificamos con un diagnóstico de riesgos y definimos modalidades (a pie, motorizado, comunitario). La clave es la proximidad y la solución de problemas. Durante la operación, mantenemos comunicación radial disciplinada, respetamos los DDHH y hacemos uso progresivo de la fuerza. Si hay flagrancia, actuamos con acción directa, preservando el lugar y la cadena de custodia. Todo se documenta en informes objetivos y se actúa con ética y responsabilidad.",
+                preguntas: [
+                    { p: "¿Cuáles son los principios rectores del patrullaje policial?", r: "Legalidad, necesidad, proporcionalidad, oportunidad y responsabilidad." },
+                    { p: "¿Qué es el patrullaje focalizado?", r: "Es una modalidad que concentra recursos en puntos de mayor riesgo o incidencia delictiva, en lugar de cubrir todo el territorio por igual." },
+                    { p: "¿Cuál es la diferencia entre seguridad objetiva y subjetiva?", r: "La objetiva se refiere a hechos y riesgos verificables (estadísticas), mientras que la subjetiva es la percepción de temor o confianza de la ciudadanía." },
+                    { p: "¿Qué indica el nivel de 'resistencia activa' en el uso progresivo de la fuerza?", r: "Es cuando la persona no coopera y opone resistencia física, requiriendo técnicas de control autorizadas, pero sin llegar a una agresión grave." },
+                    { p: "Mencione dos elementos que debe contener un informe policial.", r: "Debe ser claro, objetivo, cronológico, completo y preciso; debe incluir fecha, hora, lugar, secuencia de hechos, personas, acciones y resultados." }
+                ]
+            },
+            // --- TEMA 3 ---
+            {
+                titulo: "Tema 3: Seguridad de Instalaciones",
+                introduccion: "La seguridad de instalaciones constituye un componente esencial de la función preventiva y protectora de la Policía, porque permite organizar de manera sistemática los recursos humanos, técnicos, físicos y administrativos destinados a resguardar la vida de las personas, los bienes, la información y la continuidad de las actividades institucionales. Su estudio comprende la seguridad física, la seguridad integral, la gestión de riesgos, los protocolos de diagnóstico y contingencia, los procedimientos de vigilancia y control de accesos, así como la actuación preventiva ante situaciones críticas.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">CONCEPTOS Y SISTEMA DE SEGURIDAD</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Definición Operativa:</span> <span class="punto-referencial">Medidas humanas, técnicas y procedimentales.</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">1.1. Estructura y Diseño (capas).</span></li>
+                                            <li><span class="punto-referencial">1.2. Pilares: Prevención, disuasión, detección, retardo, respuesta, recuperación.</span></li>
+                                        </ul>
+                                    </li>
+                                    <li><span class="subtitulo-mapa">2. Sistema de Seguridad Integral:</span> <span class="punto-referencial">Medios humanos, técnicos (electrónicos y pasivos) y organizativos.</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">2.5. Protección Perimetral Electrónica.</span></li>
+                                            <li><span class="punto-referencial">2.7. Medios Pasivos Físicos (muros, rejas).</span></li>
+                                            <li><span class="punto-referencial">2.8. Medios Pasivos Mecánicos (cerraduras).</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">GESTIÓN DE RIESGOS Y PROTOCOLOS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Administración de Riesgos:</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">3.1. Fórmula: RIESGO = AMENAZA × VULNERABILIDAD.</span></li>
+                                            <li><span class="punto-referencial">3.3. Estrategias: Evitar, reducir, transferir, aceptar.</span></li>
+                                        </ul>
+                                    </li>
+                                    <li><span class="subtitulo-mapa">4. Protocolo para Diagnóstico de Seguridad.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Protocolo para Plan de Contingencia.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">SEGURIDAD EN ENTIDADES FINANCIERAS Y CONTROL DE ACCESOS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">6. Función de Seguridad en Entidades Financieras:</span> <span class="punto-referencial">Protección de vida, activos e imagen. Mirar vs. Observar. Áreas de seguridad.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Procedimientos Operativos:</span> <span class="punto-referencial">Apertura, cierre, vigilancia, esclusa de doble puerta, arco detector.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Sistemas de Control de Accesos:</span> <span class="punto-referencial">N.I.A., inspección, chapas eléctricas, torniquetes, biometría.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Teoría de la Crisis:</span> <span class="punto-referencial">Etapas (Horowitz), rasgos de un atracador.</span></li>
+                                    <li><span class="subtitulo-mapa">10. Edificio Inteligente.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 3 aborda la seguridad de instalaciones como un sistema integral. Se basa en pilares como prevención, detección y respuesta. Usamos la fórmula de riesgo (amenaza por vulnerabilidad) para diseñar estrategias. Un caso práctico son las entidades financieras, donde se protege la vida primero, aplicando procedimientos estrictos de apertura, cierre, control de accesos con esclusas y arcos detectores. Es clave saber observar, no solo mirar, y entender la teoría de la crisis para reconocer a un posible atracador. La tecnología, como los edificios inteligentes, debe estar al servicio de un sistema bien planificado y supervisado.",
+                preguntas: [
+                    { p: "¿Cuáles son los pilares fundamentales de la seguridad de instalaciones?", r: "Prevención, disuasión, detección, retardo, respuesta y recuperación." },
+                    { p: "¿Cómo se calcula el riesgo según la fórmula presentada?", r: "Riesgo = Amenaza × Vulnerabilidad." },
+                    { p: "¿Cuál es la diferencia entre 'mirar' y 'observar' en seguridad?", r: "Mirar es dirigir la vista de forma general; observar implica atención intencional, comparación, interpretación y registro de detalles relevantes." },
+                    { p: "¿Qué es la esclusa de doble puerta y para qué sirve?", r: "Es un control de acceso con dos puertas interbloqueadas que permite la identificación y revisión de una persona antes de permitirle el ingreso a un área segura." },
+                    { p: "Mencione dos estrategias de manejo del riesgo.", r: "Evitar el riesgo (suspender la actividad), reducirlo (aplicar controles), transferirlo (seguros) o aceptarlo (riesgo residual)." }
+                ]
+            },
+            // --- TEMA 4 ---
+            {
+                titulo: "Tema 4: Introducción a la Investigación Criminal",
+                introduccion: "La investigación criminal constituye una función esencial del sistema de justicia penal, debido a que permite transformar la noticia de un hecho presuntamente delictivo en información objetiva, verificable y jurídicamente útil. Su desarrollo exige la aplicación coordinada de conocimientos jurídicos, procedimientos policiales, técnicas criminalísticas y métodos científicos orientados al esclarecimiento de los hechos, la identificación de sus intervinientes y la protección de los derechos y garantías constitucionales.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">FUNDAMENTOS Y ACTUACIONES INICIALES</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Definición:</span> <span class="punto-referencial">Actividad metódica, legal y verificable.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Actuaciones Iniciales (Fiscales y Policía):</span> <span class="punto-referencial">Normas, funciones, principios de relación funcional, protección de DDHH, planificación, cuaderno de investigaciones, actos iniciales (acción directa, denuncia, querella), investigación preliminar.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INVESTIGACIÓN CRIMINAL Y LUGAR DEL HECHO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Investigación Criminal:</span> <span class="punto-referencial">Concepto, lugar del hecho (clasificación), procesamiento y registro, inspección técnica ocular, reactivos y soluciones para huellas (físicos, químicos, gaseosos, líquidos).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INDICIOS, EVIDENCIAS Y PAPILOSCOPIA</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">4. Indicio, Evidencia y Prueba:</span> <span class="punto-referencial">Diferencia conceptual, clasificación (directa, circunstancial, real).</span></li>
+                                    <li><span class="subtitulo-mapa">5. Papiloscopia:</span> <span class="punto-referencial">Principios (inmutabilidad, perennidad), ramas (dactiloscopia, etc.), dibujo papilar, impresión y huella, dactiloscopia (Sistema Vucetich, grupos fundamentales, teratología).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">CADENA DE CUSTODIA Y COORDINACIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">6. Cadena de Custodia:</span> <span class="punto-referencial">Reglas, consideraciones, fases (colección, custodia, análisis, disposición final), autopsia, levantamiento de cadáver.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Coordinación Interinstitucional:</span> <span class="punto-referencial">Fiscalía, Policía, forenses.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 4 nos introduce a la investigación criminal, un proceso metódico y legal. Todo comienza con las actuaciones iniciales, donde el fiscal dirige y la policía ejecuta. Un aspecto clave es el procesamiento del lugar del hecho: proteger, observar, fijar y recolectar. Diferenciamos entre indicio, evidencia y prueba. Una rama fundamental es la papiloscopia, que mediante la dactiloscopia (sistema Vucetich) nos permite identificar personas por sus huellas. Todo este trabajo técnico se une a través de la cadena de custodia, que garantiza la integridad de la evidencia. Finalmente, la coordinación entre fiscalía, policía y forenses es esencial para el éxito de la investigación.",
+                preguntas: [
+                    { p: "¿Cuál es la diferencia entre indicio, evidencia y prueba?", r: "El indicio es un signo inicial; la evidencia es el elemento localizado y tratado técnicamente; y la prueba es el resultado incorporado y valorado en el proceso judicial." },
+                    { p: "¿Cuáles son los principios de la papiloscopia?", r: "Inmutabilidad, perennidad, variedad infinita y universalidad." },
+                    { p: "Mencione los cuatro grupos fundamentales de la dactiloscopia en el sistema Vucetich.", r: "Arco, presilla interna, presilla externa y verticilo." },
+                    { p: "¿Qué es la cadena de custodia?", r: "Es el sistema documentado de control que garantiza la identidad, integridad y trazabilidad de las evidencias desde su recolección hasta su disposición final." },
+                    { p: "¿Cuáles son las fases o eslabones de la cadena de custodia?", r: "Colección, custodia, análisis y disposición final." }
+                ]
+            },
+            // --- TEMA 5 ---
+            {
+                titulo: "Tema 5: Educación Vial e Investigación de Accidentes de Tránsito",
+                introduccion: "La educación vial y la investigación de hechos de tránsito constituyen campos complementarios de la función policial. La primera se orienta a prevenir riesgos mediante la formación de conductores, peatones y demás usuarios de la vía; la segunda busca reconstruir técnicamente un suceso, identificar sus causas y proporcionar elementos objetivos para la determinación de responsabilidades.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">MARCO LEGAL Y ELEMENTOS DEL TRÁNSITO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Consideraciones Legales:</span> <span class="punto-referencial">Jurisdicción y competencia, Código Nacional de Tránsito (Ley 3988), responsabilidad penal y civil.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Elementos del Tránsito:</span> <span class="punto-referencial">Factor humano, factor vehículo, factor vía.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">NORMAS DE CIRCULACIÓN Y SEÑALIZACIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Normas de Circulación:</span> <span class="punto-referencial">Circulación de vehículos, prohibiciones, circulación preferencial, urbana y rural, adelantamientos, estacionamientos, velocidades.</span></li>
+                                    <li><span class="subtitulo-mapa">4. Señalización:</span> <span class="punto-referencial">Concepto, requisitos, clasificación (reglamentarias, preventivas, informativas), otras señales.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Infracciones y Sanciones:</span> <span class="punto-referencial">Concepto, clasificación, sanciones (clases), sanción a menores, inmunidad.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INVESTIGACIÓN DE HECHOS DE TRÁNSITO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">6. Consideraciones Generales:</span> <span class="punto-referencial">Accidente vs. hecho de tránsito, clases de accidentes, nomenclatura de impactos (colisión, choque, atropello, vuelco, etc.).</span></li>
+                                    <li><span class="subtitulo-mapa">7. Etapas de la Investigación:</span> <span class="punto-referencial">Averiguación de hechos (entrevistas, estado físico, condiciones del vehículo y vía), anotación (medición de huellas, croquis, fotografía), análisis (estimación de velocidad, reconstrucción, determinación de causas: directa, mediata, remota), informe, evolución del accidente (puntos de sorpresa, no escape, etc.).</span></li>
+                                    <li><span class="subtitulo-mapa">8. Condiciones del Conductor y del Vehículo.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Procedimientos:</span> <span class="punto-referencial">Recepción de denuncia, preparativos, acción directa, análisis del lugar, descripción escrita/gráfica.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 5 une la prevención y la investigación en el tránsito. Se basa en el análisis de tres factores: humano, vehículo y vía. Para prevenir, están las normas de circulación y la señalización. Cuando ocurre un hecho, comienza la investigación. No hablamos solo de 'accidentes', sino de 'hechos de tránsito'. La investigación sigue etapas: averiguación, anotación (medición de huellas, croquis) y análisis, donde reconstruimos la dinámica y determinamos las causas (directa, mediata o remota). Identificamos puntos clave como el de sorpresa o el de no escape. Todo esto se plasma en un informe técnico que permite determinar responsabilidades y generar medidas de prevención.",
+                preguntas: [
+                    { p: "¿Cuáles son los tres elementos del tránsito?", r: "El factor humano, el factor vehículo y el factor vía." },
+                    { p: "¿Cuál es la diferencia entre un accidente y un hecho de tránsito?", r: "El 'accidente' implica un suceso no intencional con daños, mientras que 'hecho de tránsito' es una categoría más amplia que abarca cualquier acontecimiento relacionado con la circulación, tenga o no resultados dañosos." },
+                    { p: "Mencione tres tipos de accidentes de tránsito según su terminología.", r: "Colisión, choque, atropello, vuelco, embarrancamiento, encunetamiento, etc." },
+                    { p: "¿Qué es el 'punto de no escape' en la evolución de un accidente?", r: "Es el momento a partir del cual, dadas la velocidad y distancia, el accidente ya no puede evitarse físicamente." },
+                    { p: "¿Cuáles son las causas de un accidente de tránsito según su proximidad con el resultado?", r: "Causa directa (desencadenante inmediato), causa mediata (condición previa que facilita) y causa remota (antecedente estructural o distante)." }
+                ]
+            },
+            // --- TEMA 6 ---
+            {
+                titulo: "Tema 6: Procedimientos Policiales",
+                introduccion: "Los procedimientos policiales comprenden actuaciones operativas destinadas a orientar la intervención institucional frente a situaciones que afectan la seguridad, el orden, la protección de personas y la prevención o esclarecimiento inicial de hechos. En esta unidad, el análisis se organiza desde una perspectiva policial aplicada, relacionando cada procedimiento con la necesidad de observar el entorno, identificar riesgos, procesar información, coordinar recursos y tomar decisiones oportunas.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">USO DE LA FUERZA Y ORDEN PÚBLICO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Uso de la Fuerza en Procedimientos:</span> <span class="punto-referencial">Valoración previa de conducta, riesgo y entorno.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Mantenimiento y Restablecimiento del Orden Público:</span> <span class="punto-referencial">Observación, identificación de actores, coordinación.</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">2.2. Principios: Legalidad, necesidad, proporcionalidad, oportunidad.</span></li>
+                                            <li><span class="punto-referencial">2.3. Pirámide o Modelo Progresivo y Diferenciado.</span></li>
+                                            <li><span class="punto-referencial">2.4. Técnicas de Verbalización y Negociación.</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">ACCIÓN DIRECTA Y OPERATIVOS ESPECIALES</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Procedimientos Operativos en Acción Directa:</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">3.1. Conceptualización Legal.</span></li>
+                                            <li><span class="punto-referencial">3.2. Protocolo de Atención Inmediata a la Víctima.</span></li>
+                                            <li><span class="punto-referencial">3.3. Preservación y Acordonamiento del Lugar.</span></li>
+                                            <li><span class="punto-referencial">3.4. Acta de Acción Directa (estructura y redacción).</span></li>
+                                        </ul>
+                                    </li>
+                                    <li><span class="subtitulo-mapa">4. Operativos contra el Narcotráfico.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Seguridad de Personas Importantes.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Seguridad Penitenciaria.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Control Migratorio.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Bombería y Salvataje.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Allanamientos (aspectos operativos).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INTELIGENCIA BÁSICA POLICIAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">10. Inteligencia Básica Policial:</span> <span class="punto-referencial">Proceso de convertir datos en conocimiento útil.</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">10.1. Conceptos Básicos: Dato, información, fuente, evaluación, análisis.</span></li>
+                                            <li><span class="punto-referencial">10.2. Clasificación General de la Inteligencia (estratégica, operacional, táctica).</span></li>
+                                            <li><span class="punto-referencial">10.3. Ciclo de Producción de la Inteligencia.</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 6 aborda los procedimientos policiales. Comenzamos con el uso de la fuerza, que debe ser progresivo y basado en principios como legalidad y proporcionalidad. Para el orden público, priorizamos la verbalización y negociación. La 'acción directa' es la respuesta inmediata: proteger a la víctima, preservar el lugar y documentar en un acta. Luego, el tema se extiende a operativos especiales como narcotráfico, seguridad de personas importantes y control migratorio. Finalmente, introduce la 'Inteligencia Básica Policial', que es el proceso de transformar datos en información útil para la toma de decisiones, siguiendo un ciclo de producción.",
+                preguntas: [
+                    { p: "¿Cuáles son los principios rectores del uso de la fuerza?", r: "Legalidad, necesidad, proporcionalidad y oportunidad." },
+                    { p: "¿Qué es la 'acción directa' en un procedimiento policial?", r: "Es la respuesta inmediata del primer interviniente para proteger a las personas, neutralizar riesgos, preservar el lugar y documentar las actuaciones." },
+                    { p: "Mencione dos técnicas de verbalización y negociación.", r: "La escucha activa, el mantenimiento de una distancia segura, el uso de un tono calmado y la formulación de preguntas claras." },
+                    { p: "¿Cuáles son las fases del ciclo de producción de inteligencia?", r: "Necesidad de conocimiento, obtención de datos, organización y valoración, análisis, elaboración del producto y difusión." },
+                    { p: "¿Qué es la inteligencia básica policial?", r: "Es el proceso mediante el cual datos obtenidos de distintas fuentes se seleccionan, valoran, integran y analizan para convertirse en conocimiento útil para la función policial, disminuyendo la incertidumbre." }
+                ]
+            },
+            // --- TEMA 7 ---
+            {
+                titulo: "Tema 7: Fundamentos Jurídicos",
+                introduccion: "El estudio de los fundamentos jurídicos de la función policial constituye una condición indispensable para comprender la legitimidad, los límites y las responsabilidades que acompañan el ejercicio de la autoridad pública. En un Estado Constitucional de Derecho, la actuación policial no se justifica únicamente por su finalidad de preservar el orden, sino por su sujeción estricta a la Constitución, al ordenamiento jurídico y a los derechos fundamentales.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">ESTADO CONSTITUCIONAL DE DERECHO Y CONSTITUCIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Estado Constitucional de Derecho:</span> <span class="punto-referencial">Concepto, características, principios (dignidad, libertad, igualdad), supremacía constitucional.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Constitución Política del Estado:</span> <span class="punto-referencial">Estructura, valores, principios, fines esenciales.</span></li>
+                                    <li><span class="subtitulo-mapa">3. Principios Constitucionales de la Función Policial:</span> <span class="punto-referencial">Legalidad, igualdad, seguridad jurídica, debido proceso, proporcionalidad, razonabilidad.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">DERECHOS FUNDAMENTALES Y ORDENAMIENTO JURÍDICO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">4. Derechos Fundamentales y Garantías:</span> <span class="punto-referencial">Civiles, políticos, sociales, garantías constitucionales.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Introducción al Derecho:</span> <span class="punto-referencial">Concepto, finalidad, características, clasificación, fuentes.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Ordenamiento Jurídico Boliviano:</span> <span class="punto-referencial">Jerarquía normativa, pirámide, control de constitucionalidad, bloque de constitucionalidad.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Interpretación y Aplicación de la Ley:</span> <span class="punto-referencial">Interpretación jurídica, vigencia, ámbitos (espacial, temporal), integración.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Acto y Hecho Jurídico:</span> <span class="punto-referencial">Conceptos, diferencias, efectos.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">FUNCIÓN PÚBLICA Y RESPONSABILIDAD</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">9. Función Pública Policial:</span> <span class="punto-referencial">Naturaleza, finalidad constitucional, principios institucionales, servicio a la sociedad.</span></li>
+                                    <li><span class="subtitulo-mapa">10. Deberes, Obligaciones y Responsabilidades:</span> <span class="punto-referencial">Deberes constitucionales, obligaciones legales, responsabilidad administrativa, disciplinaria, penal y civil.</span></li>
+                                    <li><span class="subtitulo-mapa">11. Uso Legítimo de la Fuerza:</span> <span class="punto-referencial">Principios de legalidad, necesidad, proporcionalidad, rendición de cuentas.</span></li>
+                                    <li><span class="subtitulo-mapa">12. Ética, Integridad y Transparencia:</span> <span class="punto-referencial">Ética pública, valores, probidad, lucha contra la corrupción.</span></li>
+                                    <li><span class="subtitulo-mapa">13. Régimen Constitucional de la Policía Boliviana:</span> <span class="punto-referencial">Base, misión, funciones, organización, relación con la sociedad.</span></li>
+                                    <li><span class="subtitulo-mapa">14. Seguridad Ciudadana y Función Policial:</span> <span class="punto-referencial">Concepto, corresponsabilidad, prevención, participación, Policía Comunitaria.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 7 nos da los fundamentos jurídicos. Partimos del Estado Constitucional de Derecho, donde la Constitución es la norma suprema que limita el poder. De ahí derivan los principios de la función policial: legalidad, igualdad, seguridad jurídica, etc. La Policía debe respetar y proteger los derechos fundamentales. Nos introduce al ordenamiento jurídico boliviano, con su jerarquía normativa y control de constitucionalidad. Luego, define la función pública policial, sus deberes y los tipos de responsabilidad (administrativa, penal, civil). El uso de la fuerza solo es legítimo bajo los principios de legalidad, necesidad y proporcionalidad. Finalmente, aborda la ética, la transparencia y la seguridad ciudadana como un esfuerzo de corresponsabilidad.",
+                preguntas: [
+                    { p: "¿Qué significa la supremacía constitucional?", r: "Que la Constitución ocupa la posición superior del ordenamiento jurídico y toda norma, acto o instrucción debe ser compatible con ella." },
+                    { p: "Mencione tres principios constitucionales que rigen la función policial.", r: "Legalidad, igualdad, seguridad jurídica, debido proceso, proporcionalidad y razonabilidad." },
+                    { p: "¿Cuáles son los cuatro tipos de responsabilidad del servidor público policial?", r: "Responsabilidad administrativa, disciplinaria, penal y civil." },
+                    { p: "¿Qué es el bloque de constitucionalidad?", r: "Es el conjunto de normas y principios (incluidos tratados internacionales de DDHH) que, aunque no estén en el texto constitucional, sirven como parámetro superior de validez e interpretación." },
+                    { p: "¿Cuál es la finalidad constitucional de la Policía Boliviana?", r: "Defender a la sociedad, preservar el orden público, garantizar el cumplimiento de las leyes y contribuir a la seguridad." }
+                ]
+            },
+            // --- TEMA 8 ---
+            {
+                titulo: "Tema 8: Derechos Humanos y Función Policial",
+                introduccion: "Los derechos humanos aplicados a la función policial constituyen el marco ético, jurídico y operativo que orienta toda actuación destinada a prevenir el delito, mantener el orden público, proteger a las personas y hacer cumplir la ley. Su incorporación en la formación policial no debe limitarse al conocimiento declarativo de normas, sino traducirse en criterios concretos para planificar intervenciones, efectuar controles, practicar aprehensiones, custodiar personas, gestionar conflictos y emplear la fuerza.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">HISTORIA Y SISTEMAS DE PROTECCIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Antecedentes y Evolución Histórica:</span> <span class="punto-referencial">Ámbito universal (Cilindro de Ciro, Carta Magna, Declaración de 1789, DUDH 1948) y nacional (Revolución de 1952, dictaduras, retorno a la democracia, CPE 2009).</span></li>
+                                    <li><span class="subtitulo-mapa">2. Declaración Universal y sus Generaciones:</span> <span class="punto-referencial">Civiles y políticos, económicos/sociales/culturales, solidaridad y tecnológicos, derechos en progreso.</span></li>
+                                    <li><span class="subtitulo-mapa">3. Mecanismos de Protección:</span> <span class="punto-referencial">Sistema Universal (ONU), Sistemas Regionales (CIDH, Corte IDH, Europeo, Africano, Árabe), Sistema Nacional (Defensoría del Pueblo, Garantías Jurisdiccionales).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">PROHIBICIÓN DE TORTURA Y POBLACIONES ESPECÍFICAS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">4. Prohibición Absoluta de la Tortura.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Aplicación Estricta de Normativas contra la Tortura y Tratos Crueles.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Protección a Poblaciones Específicas (Grupos en situación de vulnerabilidad y enfoque de género):</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">6.1.1. Niñez y adolescencia.</span></li>
+                                            <li><span class="punto-referencial">6.1.2. Comunidad LGTB.</span></li>
+                                            <li><span class="punto-referencial">6.1.3. Personas con discapacidad.</span></li>
+                                            <li><span class="punto-referencial">6.1.4. Adultos mayores.</span></li>
+                                            <li><span class="punto-referencial">6.1.5. Mujeres e igualdad de género.</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">USO DE LA FUERZA Y MARCO ÉTICO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">7. Marco Ético y Normativo:</span> <span class="punto-referencial">Principios policiales de Robert Peel, Código de Conducta para Funcionarios Encargados de Hacer Cumplir la Ley (FEHCL).</span></li>
+                                    <li><span class="subtitulo-mapa">8. Principios del Uso de la Fuerza:</span> <span class="punto-referencial">Legalidad, necesidad, proporcionalidad, precaución, diferenciación, rendición de cuentas.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Legalidad:</span> <span class="punto-referencial">Fundamentación estricta en la normativa.</span></li>
+                                    <li><span class="subtitulo-mapa">10. Necesidad:</span> <span class="punto-referencial">Aplicación solo cuando medios no letales son ineficaces.</span></li>
+                                    <li><span class="subtitulo-mapa">11. Proporcionalidad:</span> <span class="punto-referencial">Equilibrio entre amenaza y nivel de fuerza.</span></li>
+                                    <li><span class="subtitulo-mapa">12-16. Uso Diferenciado y Progresivo, Respuesta Gradual, Modelo de Intervención, Gestión de Conflictos y Control de Multitudes, Clasificación (aglomeración, multitud, disturbios), Intervención Táctica para el Restablecimiento del Orden.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 8 trata sobre los DDHH en la función policial. Repasamos su evolución histórica, desde el Cilindro de Ciro hasta la DUDH de 1948 y la Constitución de 2009. Existen mecanismos de protección internacionales y nacionales. Un punto absoluto es la prohibición de la tortura. La Policía debe tener un trato diferenciado con grupos vulnerables (niños, LGTB, personas con discapacidad, adultos mayores, mujeres). Finalmente, el uso de la fuerza se rige por principios estrictos: legalidad, necesidad y proporcionalidad. El uso progresivo y diferenciado nos permite elegir la respuesta mínima necesaria, priorizando siempre la vida y los derechos humanos.",
+                preguntas: [
+                    { p: "¿Qué instrumento de 1948 constituye la formulación contemporánea de derechos aplicables a todas las personas?", r: "La Declaración Universal de los Derechos Humanos (DUDH)." },
+                    { p: "¿Cuáles son los dos sistemas regionales de protección de DDHH mencionados?", r: "El Sistema Interamericano (CIDH y Corte IDH) y el Sistema Europeo (Convenio Europeo)." },
+                    { p: "¿Qué establece la prohibición absoluta de la tortura?", r: "Que ninguna circunstancia (emergencia, orden superior, etc.) puede justificar la tortura." },
+                    { p: "Mencione dos principios del uso de la fuerza.", r: "Legalidad, necesidad, proporcionalidad, precaución, diferenciación y rendición de cuentas." },
+                    { p: "¿Qué es el uso diferenciado y progresivo de la fuerza?", r: "Es un modelo de decisión operacional que relaciona el nivel de cooperación o resistencia de una persona con la respuesta policial, priorizando los medios no violentos y aumentando la fuerza solo si es necesario." }
+                ]
+            },
+            // --- TEMA 9 ---
+            {
+                titulo: "Tema 9: Derecho Penal y Procesal Penal",
+                introduccion: "La actuación policial dentro del sistema penal exige mucho más que capacidad operativa: requiere conocimiento jurídico, disciplina procedimental y comprensión de los límites que protegen la dignidad humana. El Derecho Penal identifica las conductas prohibidas y sus consecuencias, mientras que el Derecho Procesal Penal establece el camino legítimo para investigar, acusar y juzgar. La función policial se ubica en la primera línea de esa relación, porque suele intervenir en el momento más próximo al hecho, cuando la información es frágil, las personas se encuentran en situación de riesgo y cada decisión puede influir en la validez posterior del proceso.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">FUNDAMENTOS Y PRINCIPIOS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Fundamentos:</span> <span class="punto-referencial">Concepto y función del Derecho Penal y Procesal Penal.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Principios Rectores:</span> <span class="punto-referencial">Legalidad, presunción de inocencia, debido proceso, objetividad, proporcionalidad, non bis in idem, respeto a DDHH, legalidad de la prueba.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">FUNCIÓN POLICIAL EN EL PROCESO Y POLICÍA JUDICIAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Función Policial en el Proceso Penal:</span> <span class="punto-referencial">Policía como órgano auxiliar del Ministerio Público, prevención, conservación del lugar, identificación de autores, aprehensión en flagrancia, ejecución de actos investigativos, informes técnicos y custodia de evidencias.</span></li>
+                                    <li><span class="subtitulo-mapa">4. Policía Judicial e Investigación Preliminar:</span> <span class="punto-referencial">Concepto, alcance, requisa personal y de vehículos, actuaciones fundamentadas, cadena de custodia, coordinación con el IDIF.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Jurisdicción, Competencia y Acción Penal:</span> <span class="punto-referencial">Jurisdicción penal, competencia territorial/funcional, acción penal pública, a instancia de parte, privada, conversión y extinción.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">DERECHOS, TEORÍA DEL DELITO Y JUICIO ORAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">6. Derechos y Garantías:</span> <span class="punto-referencial">Derechos del imputado, de la víctima, derecho a la defensa y silencio, prohibición de pruebas ilícitas, control jurisdiccional.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Teoría del Delito:</span> <span class="punto-referencial">Conducta, tipicidad, antijuridicidad, culpabilidad, autoría y participación, iter criminis, concurso de delitos.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Medidas Coercitivas:</span> <span class="punto-referencial">Arresto, aprehensión, detención en flagrancia, incautación de objetos, preservación de evidencias, registro del lugar, fundamentación y plazos.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Participación Policial en el Juicio Oral:</span> <span class="punto-referencial">Policía como testigo, presentación y ratificación de informes, custodia de evidencias, seguridad del tribunal, principios de objetividad e imparcialidad.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 9 nos sumerge en el Derecho Penal y Procesal Penal. El primero define los delitos y penas; el segundo, el camino legal para investigar y juzgar. La Policía actúa como órgano auxiliar del Ministerio Público, bajo principios como legalidad y presunción de inocencia. En la investigación preliminar, realizamos actos urgentes, preservamos la cadena de custodia y coordinamos con el IDIF. La teoría del delito nos da la estructura para analizar una conducta: tipicidad, antijuridicidad y culpabilidad. También vemos las medidas coercitivas como la aprehensión en flagrancia. Finalmente, en el juicio oral, el policía declara como testigo, ratifica informes y debe ser objetivo e imparcial.",
+                preguntas: [
+                    { p: "¿Cuál es la diferencia entre Derecho Penal y Derecho Procesal Penal?", r: "El Derecho Penal define las conductas delictivas y sus consecuencias (penas); el Derecho Procesal Penal establece el procedimiento para investigar, acusar y juzgar." },
+                    { p: "¿Qué principio impide perseguir o sancionar dos veces a una persona por el mismo hecho?", r: "El principio 'non bis in idem'." },
+                    { p: "Mencione los cuatro elementos de la teoría del delito.", r: "Conducta, tipicidad, antijuridicidad y culpabilidad." },
+                    { p: "¿Qué es la flagrancia?", r: "Es la situación en la que una persona es sorprendida durante la comisión de un delito o en circunstancias próximas que la vinculan directamente con el hecho." },
+                    { p: "¿Cuál es el rol del policía en el juicio oral?", r: "Declarar como testigo sobre hechos que percibió o actuaciones que realizó, ratificar informes técnicos, explicar la custodia de evidencias y actuar con objetividad e imparcialidad." }
+                ]
+            },
+            // --- TEMA 10 ---
+            {
+                titulo: "Tema 10: Género y Violencia Intrafamiliar",
+                introduccion: "La violencia en razón de género y la violencia intrafamiliar constituyen fenómenos complejos que afectan la vida, la integridad, la libertad, la dignidad y el desarrollo de las personas, especialmente de las mujeres. Su abordaje exige comprender simultáneamente el marco constitucional, las obligaciones internacionales del Estado, la legislación penal y procesal, y los procedimientos operativos que orientan la intervención policial. Desde esta perspectiva, la función policial no se limita a recibir denuncias o ejecutar actos investigativos; comprende también prevención, detección temprana, protección inmediata, evaluación de riesgo, preservación de evidencias, coordinación interinstitucional y trato digno a la víctima.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">MARCO JURÍDICO NACIONAL E INTERNACIONAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Marco Jurídico Nacional:</span> <span class="punto-referencial">CPE (Art. 15, 251), Ley N.º 734 (Policía), Ley N.º 348 (Ley Integral para Garantizar a las Mujeres una Vida Libre de Violencia - Art. 44, 45, 46, 53, 54, 55, 57, 58, 59, 60), Ley N.º 260 (Ministerio Público), Código de Procedimiento Penal, Código Penal (Art. 154 Bis).</span></li>
+                                    <li><span class="subtitulo-mapa">2. Marco Jurídico Internacional:</span> <span class="punto-referencial">CEDAW, Convención de Belém do Pará.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">MARCO CONCEPTUAL Y TIPOS DE VIOLENCIA</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Marco Conceptual:</span> <span class="punto-referencial">Definiciones (violencia, DDHH, género, violencia de género, violencia contra las mujeres, situación de violencia).</span></li>
+                                    <li><span class="subtitulo-mapa">3.2. Tipos de Violencia contra las Mujeres:</span> <span class="punto-referencial">Física, psicológica, sexual, patrimonial y económica, feminicida, mediática, simbólica, contra la dignidad y honra, contra los derechos reproductivos, en servicios de salud, laboral, en el sistema educativo, en el ejercicio político, institucional, en la familia, contra la libertad sexual, cualquier otra forma.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INTERVENCIÓN POLICIAL Y PROCESO PENAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">4. Intervención Policial:</span> <span class="punto-referencial">Ámbito de aplicación, prevención (coordinación, difusión, capacitación, evitar nuevas agresiones), detección, acción directa, actuaciones de comprobación.</span></li>
+                                    <li><span class="subtitulo-mapa">5. Reacción de la Víctima:</span> <span class="punto-referencial">Definición, reacciones variables, evaluación de riesgo preliminar, medidas de protección.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Recepción de la Denuncia:</span> <span class="punto-referencial">Definición, formas (verbal, escrita, telefónica, etc.), lineamientos (no revictimización, no formalismo, gratuidad, espacio adecuado, escucha activa).</span></li>
+                                    <li><span class="subtitulo-mapa">7. Delitos investigados por la FELCV:</span> <span class="punto-referencial">Contra la vida, integridad y libertad sexual, contra la familia, modificaciones por Ley 348.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Actos Investigativos:</span> <span class="punto-referencial">Recepción de declaración, acciones, documentación, investigación preliminar, actas, recolección de indicios, certificado médico forense, cadena de custodia.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Etapas y Plazos:</span> <span class="punto-referencial">Etapa preliminar, informe preliminar, etapa preparatoria, juicio oral, testimonio.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 10 es crucial. Aborda la violencia de género e intrafamiliar desde un marco legal robusto: la Constitución, la Ley 348, la Ley 260 y tratados internacionales como la CEDAW y Belém do Pará. Definimos los múltiples tipos de violencia: física, psicológica, económica, sexual, etc. La intervención policial debe ser inmediata, especializada y centrada en la víctima, evitando la revictimización. Evaluamos el riesgo, activamos medidas de protección y recibimos la denuncia sin formalismos. La FELCV investiga estos delitos, preservando evidencias y coordinando con fiscalía y forenses. Finalmente, acompañamos el proceso penal hasta el juicio oral.",
+                preguntas: [
+                    { p: "¿Qué ley integral garantiza a las mujeres una vida libre de violencia en Bolivia?", r: "La Ley N.º 348." },
+                    { p: "Mencione tres tipos de violencia contra las mujeres según la Ley 348.", r: "Física, psicológica, sexual, económica, patrimonial, simbólica, etc." },
+                    { p: "¿Qué es la revictimización y cómo se evita?", r: "Es el daño adicional que sufre la víctima por parte del sistema (repetición de relatos, culpabilización). Se evita con escucha activa, espacio privado, no exigiéndole repetir los hechos innecesariamente y no culpabilizándola." },
+                    { p: "¿Qué es la evaluación de riesgo preliminar?", r: "Es un proceso inmediato para estimar la probabilidad y gravedad de nuevas agresiones, considerando amenazas, armas, celos, consumo de sustancias, etc." },
+                    { p: "¿Cuál es la función de la FELCV?", r: "Es el organismo especializado de la Policía Boliviana para la prevención, auxilio, investigación, identificación y aprehensión de presuntos responsables en casos de violencia contra las mujeres, bajo dirección funcional fiscal." }
+                ]
+            },
+            // --- TEMA 11 ---
+            {
+                titulo: "Tema 11: Legislación Policial y Seguridad Ciudadana",
+                introduccion: "La legislación policial y de seguridad ciudadana constituye el marco normativo que orienta, limita y legitima la actuación de la Policía Boliviana. Su estudio no debe reducirse a la memorización de disposiciones aisladas, sino comprenderse como un sistema articulado en el que la Constitución Política del Estado, las leyes sectoriales, el régimen orgánico y disciplinario, los instrumentos de administración pública y los mecanismos de responsabilidad funcional se relacionan para garantizar una intervención estatal legal, eficiente, proporcional y respetuosa de los derechos fundamentales.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">BLOQUE DE CONSTITUCIONALIDAD Y LEYES SECTORIALES</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">I. Bloque de Constitucionalidad:</span> <span class="punto-referencial">CPE (garantía suprema), Ley N.º 264 y D.S. 1436 (Sistema Nacional de Seguridad Ciudadana).</span></li>
+                                    <li><span class="subtitulo-mapa">II. Leyes Sectoriales Específicas:</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">2.1. Ley N.º 259 y D.S. 1347 (Control de bebidas alcohólicas).</span></li>
+                                            <li><span class="punto-referencial">2.2. Ley N.º 263 y D.S. 1486 (Trata y tráfico de personas).</span></li>
+                                            <li><span class="punto-referencial">2.3. Ley N.º 348 y D.S. 2145 (Violencia contra la mujer).</span></li>
+                                            <li><span class="punto-referencial">2.4. Otras leyes y normas sectoriales.</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">INSTITUCIONALIDAD Y RÉGIMEN DISCIPLINARIO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">III. Régimen Orgánico y Disciplinario:</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">3.1.1. Ley N.º 734 (Ley Orgánica de la Policía).</span></li>
+                                            <li><span class="punto-referencial">3.1.2. Ley N.º 101 (Régimen Disciplinario).</span></li>
+                                            <li><span class="punto-referencial">3.1.3. Órganos disciplinarios (Fiscalía Policial, Tribunales).</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">DESCONCENTRACIÓN, POLICÍA COMUNITARIA Y TECNOLOGÍA</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">IV. Modelo de Desconcentración Policial y Policía Comunitaria (EPIs y Módulos).</span></li>
+                                    <li><span class="subtitulo-mapa">V. Desconcentración Policial (R.A. 272/2014 y R.M. 097/2015).</span></li>
+                                    <li><span class="subtitulo-mapa">VI. Filosofía Comunitaria (modelo proactivo).</span></li>
+                                    <li><span class="subtitulo-mapa">VII. Roles Operativos en EPIs.</span></li>
+                                    <li><span class="subtitulo-mapa">VIII. Participación Ciudadana y Tecnología (BOL-110, CADI, videovigilancia, georreferenciación).</span></li>
+                                    <li><span class="subtitulo-mapa">IX. Mecanismos de Participación (Escuelas, Brigadas Vecinales/Escolares, Voluntariado).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">GESTIÓN PÚBLICA Y RESPONSABILIDAD</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">X. El Estado y su definición.</span></li>
+                                    <li><span class="subtitulo-mapa">XI. Sistemas de la Ley N.º 1178 (SAFCO):</span> <span class="punto-referencial">Planificación (SPIE, POA), Organización (SOA), Presupuesto (SP), Ejecución (SAP, SABS, STCP, SCI), Control (interno y externo).</span></li>
+                                    <li><span class="subtitulo-mapa">XII. Responsabilidad por la Función Pública:</span> <span class="punto-referencial">Tipología (administrativa, ejecutiva, civil, penal), aspectos procesales (exención, prescripción).</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 11 es muy amplio. Comienza con el bloque de constitucionalidad y leyes clave como la 264 de Seguridad Ciudadana. Luego detalla leyes sectoriales sobre alcohol, trata y violencia. Aborda el régimen orgánico y disciplinario de la Policía (Leyes 734 y 101). Un punto central es el modelo de desconcentración con las EPIs y la filosofía de policía comunitaria, que integra a la ciudadanía. También menciona el rol de la tecnología (BOL-110, CADI) y los mecanismos de participación. Finalmente, conecta la función policial con la gestión pública a través de la Ley 1178 (SAFCO) y los tipos de responsabilidad por la función pública.",
+                preguntas: [
+                    { p: "¿Qué ley organiza la seguridad ciudadana como una responsabilidad coordinada y participativa?", r: "La Ley N.º 264 'Para una Vida Segura'." },
+                    { p: "¿Qué ley regula el régimen disciplinario de la Policía Boliviana?", r: "La Ley N.º 101." },
+                    { p: "¿Qué son las EPIs y cuál es su finalidad?", r: "Son Estaciones Policiales Integrales. Su finalidad es acercar los servicios policiales a la comunidad, integrando prevención, auxilio y atención de denuncias en el nivel territorial." },
+                    { p: "¿Qué sistema de la Ley 1178 se encarga de la planificación y organización?", r: "El Sistema de Planificación Integral del Estado (SPIE), el Sistema de Programación de Operaciones (POA) y el Sistema de Organización Administrativa (SOA)." },
+                    { p: "Mencione los cuatro tipos de responsabilidad por la función pública.", r: "Responsabilidad administrativa, ejecutiva, civil y penal." }
+                ]
+            },
+            // --- TEMA 12 ---
+            {
+                titulo: "Tema 12: Expresión Oral, Ética y Relaciones Humanas",
+                introduccion: "La expresión oral, la ética y las relaciones humanas son elementos fundamentales en la formación y el desempeño profesional del servidor policial. Estos conocimientos permiten actuar con responsabilidad, disciplina, respeto y vocación de servicio, tanto dentro de la institución como en la atención a la ciudadanía. La Unidad Temática N.º 12 comprende aspectos relacionados con la deontología y doctrina policial, el liderazgo, la correspondencia policial, las relaciones humanas y públicas, así como la expresión oral y escrita.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">DEONTOLOGÍA Y LIDERAZGO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Deontología Policial y Doctrina:</span> <span class="punto-referencial">Definición, naturaleza, principios, mística, vocación de servicio, Código de Ética, honor y disciplina.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Liderazgo:</span> <span class="punto-referencial">Definición operativa, mando y subordinación voluntaria, naturaleza del mando, obediencia reflexiva vs. ciega.</span>
+                                        <ul>
+                                            <li><span class="punto-referencial">2.2. Jefe Coercitivo vs. Líder Institucional (poder formal vs. influencia).</span></li>
+                                            <li><span class="punto-referencial">2.3. Estilos de Liderazgo: Autocrático (operaciones de alto riesgo), Democrático (planificación), Laissez-Faire (peligros), Transformacional (EPIs).</span></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">CORRESPONDENCIA Y RELACIONES HUMANAS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Correspondencia Policial:</span> <span class="punto-referencial">Definición, características, clasificación (naturaleza, confidencialidad), importancia (institucional, valor probatorio), documentación policial (definición, características).</span></li>
+                                    <li><span class="subtitulo-mapa">4. Relaciones Humanas, Públicas y Trato Social:</span> <span class="punto-referencial">Concepto, tipos, relaciones públicas, buen trato, normas de trato social, comportamiento individual/grupal, relacionamiento con el público, imperativos éticos, imagen personal e institucional, normas de trato al público, liderazgo y relaciones internas, líderes vs. jefes.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">EXPRESIÓN ORAL Y ESCRITA</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">5. Expresión Oral y Escrita:</span> <span class="punto-referencial">La comunicación, lenguaje y gramática, oratoria y discurso (objetivo, miedo escénico), estructura del discurso (introducción, desarrollo, conclusión), lenguaje y voz.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 12 integra tres dimensiones: ética, liderazgo y comunicación. La deontología policial nos marca los deberes profesionales. El liderazgo no es solo mandar; es influir positivamente. Diferenciamos al jefe coercitivo del líder institucional, y vemos estilos como el autocrático (para emergencias) y el democrático (para planificación). La correspondencia policial es clave para la trazabilidad y el valor probatorio. Las relaciones humanas y el buen trato son fundamentales para la legitimidad. Finalmente, la expresión oral y escrita, con la oratoria y la estructura del discurso, nos permite comunicar eficazmente nuestras decisiones y órdenes.",
+                preguntas: [
+                    { p: "¿Cuál es la diferencia entre un jefe coercitivo y un líder institucional?", r: "El jefe coercitivo se basa en el temor y la amenaza; el líder institucional combina autoridad legal con influencia positiva, ejemplo y desarrollo del personal." },
+                    { p: "¿Qué es la obediencia reflexiva?", r: "Es cumplir órdenes comprendiendo su finalidad, legalidad y límites, a diferencia de la obediencia ciega que no analiza." },
+                    { p: "Mencione dos características de la correspondencia policial.", r: "Formalidad, claridad, concisión, objetividad, exactitud, oportunidad, jerarquía y trazabilidad." },
+                    { p: "¿Qué es el 'buen trato' en el ámbito policial?", r: "Es una práctica profesional basada en la dignidad, igualdad, cortesía, empatía y ausencia de discriminación, ejerciendo la autoridad sin humillación." },
+                    { p: "¿Cuáles son las tres partes de la estructura del discurso?", r: "Introducción, desarrollo y conclusión." }
+                ]
+            },
+            // --- TEMA 13 ---
+            {
+                titulo: "Tema 13: Psicología General y Aplicada",
+                introduccion: "La psicología general y aplicada proporciona un marco científico para comprender la conducta, los procesos mentales y las relaciones humanas que se manifiestan en la vida cotidiana y, de manera particularmente intensa, en la labor policial. Su estudio permite interpretar cómo una persona percibe un hecho, procesa información, recuerda acontecimientos, regula emociones, toma decisiones y responde ante situaciones de amenaza, conflicto o crisis.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">INTRODUCCIÓN Y PROCESOS PSICOLÓGICOS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Introducción a la Psicología:</span> <span class="punto-referencial">Concepto, concepción bio-psico-social, campos de acción.</span></li>
+                                    <li><span class="subtitulo-mapa">2. Funciones y Procesos Psicológicos:</span> <span class="punto-referencial">Sensación, percepción, atención, memoria, aprendizaje, pensamiento y lenguaje, motivación y emoción.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">PSICOLOGÍA DEL TESTIMONIO Y PERSONALIDAD</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Psicología del Testimonio:</span> <span class="punto-referencial">Concepto, entrevista a sospechosos, interferencias en la percepción, pautas para entrevistar testigos, psicología de los gestos y sintomatología de la mentira (reacciones orgánicas, simulación, disimulación, sobresimulación), pruebas psicotécnicas.</span></li>
+                                    <li><span class="subtitulo-mapa">4. La Personalidad:</span> <span class="punto-referencial">Concepto, estructura, características y factores, carácter, temperamento y personalidad (clases).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">CRIMINALIDAD, FORENSE Y SALUD MENTAL</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">5. La Personalidad Criminal:</span> <span class="punto-referencial">Psicología forense, diferencia con psiquiatría forense, personalidad criminal, concepto diferencial del delincuente (anormales: psicótico, psicópata, neurótico; normales: por crisis, profesionales, por instintos primitivos), agresividad, violencia (tipos).</span></li>
+                                    <li><span class="subtitulo-mapa">6. Introducción a la Psicología Forense:</span> <span class="punto-referencial">Antecedentes, delimitación, ciencias afines (criminal, criminalística, penitenciaria).</span></li>
+                                    <li><span class="subtitulo-mapa">7. Primeros Auxilios Psicológicos (PAP):</span> <span class="punto-referencial">Introducción, qué son, contención emocional, contribución del policía, componentes, desencadenantes de crisis.</span></li>
+                                    <li><span class="subtitulo-mapa">8. Salud Mental:</span> <span class="punto-referencial">Concepto, en la función policial, estrés laboral, Síndrome de Burnout.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Personalidad Psicopática y Criminalidad:</span> <span class="punto-referencial">Características, conducta delictiva, instrumentos, comportamiento penitenciario.</span></li>
+                                    <li><span class="subtitulo-mapa">10. Delincuente Sexual y Criminalidad:</span> <span class="punto-referencial">Características, trastornos y desviaciones (identidad sexual, parafilias), violación, incesto.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 13 nos da una base psicológica para la función policial. Entender procesos como percepción, memoria y atención es clave para la psicología del testimonio. Aprendemos a entrevistar testigos sin sugestionar y a interpretar gestos con cautela. Estudiamos la personalidad y sus trastornos, diferenciando conceptos como psicópata, psicótico y neurótico. La psicología forense nos ayuda a delimitar nuestro campo. Los Primeros Auxilios Psicológicos (PAP) son una herramienta humanitaria para crisis. Finalmente, abordamos la salud mental del propio policía y el estudio de la personalidad criminal y delincuentes sexuales.",
+                preguntas: [
+                    { p: "¿Por qué la memoria no es una grabación literal de los hechos?", r: "Porque es una reconstrucción susceptible a olvidos, interferencias, sugerencias y reorganizaciones posteriores." },
+                    { p: "¿Cuál es la diferencia entre psicología forense y psiquiatría forense?", r: "La psicología forense se centra en la evaluación psicológica (conducta, cognición); la psiquiatría forense es una especialidad médica orientada al diagnóstico y tratamiento de trastornos mentales, incluyendo medicación." },
+                    { p: "¿Qué son los Primeros Auxilios Psicológicos (PAP)?", r: "Son acciones inmediatas de protección, escucha, orientación y enlace con recursos para personas afectadas por crisis, buscando reducir el impacto inicial." },
+                    { p: "Mencione dos características de la personalidad psicopática.", r: "Insensibilidad, manipulación, mentira persistente, escaso remordimiento, irresponsabilidad." },
+                    { p: "¿Qué es el Síndrome de Burnout?", r: "Es un estado de agotamiento relacionado con estrés laboral crónico, caracterizado por cansancio emocional, distanciamiento y disminución de la eficacia percibida." }
+                ]
+            },
+            // --- TEMA 14 ---
+            {
+                titulo: "Tema 14: Soporte Vital Básico",
+                introduccion: "El soporte vital básico comprende un conjunto de actuaciones iniciales destinadas a reconocer amenazas inmediatas para la vida, mantener las funciones esenciales y reducir el deterioro de una persona lesionada o enferma hasta que reciba atención sanitaria de mayor complejidad. En el ámbito policial, estas competencias adquieren especial relevancia porque el personal puede ser el primer respondiente en accidentes de tránsito, hechos violentos, intervenciones operativas, desastres o situaciones comunitarias en las que existen hemorragias, compromiso de la vía aérea o paro cardiorrespiratorio.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">ATENCIÓN DE HEMORRAGIAS Y SHOCK</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Atención de Hemorragias:</span> <span class="punto-referencial">Pulsos y puntos de presión, evaluación de la situación, descubrimiento de la herida, signos y síntomas, volúmenes y pérdidas, características (capilar, venosa, arterial), verificación de heridas, colocación de apósito, control (presión directa/indirecta, vendaje de presión, empaquetadura, torniquete CAT, agentes hemostáticos).</span></li>
+                                    <li><span class="subtitulo-mapa">1.10. Shock:</span> <span class="punto-referencial">Identificación (piel fría, taquicardia, hipotensión), tipos (hipovolémico, neurogénico), manejo (posición, control de hemorragia, evitar hipotermia).</span></li>
+                                    <li><span class="subtitulo-mapa">1.11-1.13. Objetivos del tratamiento, hemorragia interna/externa, clasificación de heridas (abrasivas, cortantes, punzantes, por arma de fuego), manejo inicial, objetos empalados.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">VÍA AÉREA Y RESPIRACIÓN</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">2. Verificación de Vías Aéreas:</span> <span class="punto-referencial">Tipos de obstrucción (parcial, total).</span></li>
+                                    <li><span class="subtitulo-mapa">2.2. Técnicas de Respiración:</span> <span class="punto-referencial">Artificial, boca a boca, boca a dispositivo, boca barrera (mascarilla).</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">REANIMACIÓN CARDIOPULMONAR (RCP)</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">2.3. Reanimación Cardiopulmonar (RCP):</span> <span class="punto-referencial">Maniobras para mantener circulación y oxigenación, compresiones torácicas, uso de DEA.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 14 es vital para el primer respondiente. El Soporte Vital Básico se centra en reconocer y tratar amenazas inmediatas. La prioridad número uno es el control de hemorragias: evaluamos la escena, descubrimos la herida y aplicamos presión directa, vendaje de presión, empaquetadura o torniquete según la gravedad. También reconocemos los signos de shock. Luego, nos enfocamos en la vía aérea: verificamos si hay obstrucción parcial o total y aplicamos técnicas de respiración artificial. Finalmente, la Reanimación Cardiopulmonar (RCP) con compresiones torácicas de alta calidad y el uso del DEA son esenciales para mantener la circulación en un paro cardiorrespiratorio.",
+                preguntas: [
+                    { p: "¿Cuál es la primera medida para controlar una hemorragia externa grave?", r: "La presión directa sobre la herida con un apósito o material limpio." },
+                    { p: "Mencione tres signos de shock.", r: "Piel fría y pálida, taquicardia (pulso rápido) e hipotensión (presión arterial baja)." },
+                    { p: "¿Qué es el torniquete táctico (tipo CAT) y cuándo se usa?", r: "Es un dispositivo para controlar hemorragias graves de extremidades cuando la presión directa no es suficiente. Se coloca proximal a la herida, ajustando hasta detener el sangrado y registrando la hora." },
+                    { p: "¿Cuál es la diferencia entre una obstrucción parcial y total de la vía aérea?", r: "En la parcial, la persona puede toser o emitir sonidos; en la total, no puede hablar, toser eficazmente ni respirar, siendo una emergencia crítica." },
+                    { p: "¿En qué consiste la Reanimación Cardiopulmonar (RCP) básica en adultos?", r: "Se basa en compresiones torácicas de alta calidad, minimización de interrupciones y uso temprano de un desfibrilador externo automático (DEA) cuando esté disponible." }
+                ]
+            },
+            // --- TEMA 15 ---
+            {
+                titulo: "Tema 15: Metodología de la Investigación Científica",
+                introduccion: "La metodología de la investigación científica constituye un sistema ordenado de decisiones conceptuales, técnicas y operativas destinado a estudiar un problema de manera verificable, coherente y útil para la toma de decisiones. En el ámbito policial, su aplicación permite transformar hechos observables —como variaciones en la incidencia delictiva, deficiencias de procedimientos, necesidades de capacitación o problemas de relación con la comunidad— en objetos de estudio delimitados, susceptibles de ser analizados mediante evidencia.",
+                mapa: `
+                    <div class="mapa-conceptual">
+                        <ul>
+                            <li><span class="nodo-principal">PLANTEAMIENTO Y SUSTENTO TEÓRICO</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">1. Planteamiento del Problema:</span> <span class="punto-referencial">Identificación, descripción, pregunta de investigación, justificación (social, técnica, institucional, jurídica), delimitación (temática, espacial, temporal), objetivos (general, específicos).</span></li>
+                                    <li><span class="subtitulo-mapa">2. Sustento Teórico:</span> <span class="punto-referencial">Marco conceptual, marco teórico, marco legal, marco institucional.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">METODOLOGÍA Y ANÁLISIS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">3. Metodología General:</span> <span class="punto-referencial">Enfoque (cuantitativo, cualitativo, mixto), tipo y diseño de investigación, población y muestra.</span></li>
+                                    <li><span class="subtitulo-mapa">3.4. Técnicas de Investigación:</span> <span class="punto-referencial">Observación, entrevista, encuesta.</span></li>
+                                    <li><span class="subtitulo-mapa">3.5. Instrumentos:</span> <span class="punto-referencial">Guía de observación, guía de entrevista, cuestionario.</span></li>
+                                    <li><span class="subtitulo-mapa">4. Análisis e Interpretación de Datos:</span> <span class="punto-referencial">Diagnóstico y presentación de resultados (observación, entrevista, cuestionario), interpretación.</span></li>
+                                </ul>
+                            </li>
+                            <li><span class="nodo-principal">PROPUESTA, CONCLUSIONES Y REFERENCIAS</span>
+                                <ul>
+                                    <li><span class="subtitulo-mapa">5. Propuesta de la Investigación (si corresponde):</span> <span class="punto-referencial">Título, objetivo, desarrollo.</span></li>
+                                    <li><span class="subtitulo-mapa">6. Conclusiones y Recomendaciones.</span></li>
+                                    <li><span class="subtitulo-mapa">7. Referencias Bibliográficas (APA 7).</span></li>
+                                    <li><span class="subtitulo-mapa">8. Anexos.</span></li>
+                                    <li><span class="subtitulo-mapa">9. Conclusión General.</span></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                `,
+                guion: "<strong>Mini Guion:</strong> El Tema 15 nos enseña a investigar. Todo comienza con el planteamiento del problema: identificar una situación, describirla, formular una pregunta y justificar por qué es importante. Luego, construimos el sustento teórico con conceptos, teorías y leyes. La metodología define el camino: elegimos un enfoque (cuantitativo, cualitativo o mixto), un diseño, y seleccionamos técnicas e instrumentos como la entrevista o la encuesta. Posteriormente, analizamos e interpretamos los datos para generar un diagnóstico. Si corresponde, formulamos una propuesta de solución. Finalmente, presentamos conclusiones, recomendaciones y las referencias bibliográficas.",
+                preguntas: [
+                    { p: "¿Cuál es la diferencia entre el objetivo general y los objetivos específicos?", r: "El objetivo general sintetiza el propósito principal del estudio, mientras que los específicos descomponen ese propósito en resultados parciales y ordenados que contribuyen a lograrlo." },
+                    { p: "Mencione tres técnicas de investigación.", r: "Observación, entrevista y encuesta." },
+                    { p: "¿Qué es el marco teórico?", r: "Es la integración de enfoques, proposiciones y antecedentes científicos que explican o permiten comprender el fenómeno estudiado, relacionando conceptos y orientando la interpretación." },
+                    { p: "¿Cuál es la diferencia entre población y muestra?", r: "La población es el conjunto total de unidades que cumplen los criterios de estudio; la muestra es una parte de esa población seleccionada para obtener información." },
+                    { p: "¿Qué debe contener una conclusión de investigación?", r: "Debe responder de forma directa a cada objetivo, señalar los hallazgos más relevantes y mantener un nivel de certeza acorde con el diseño utilizado, sin ser un resumen extenso ni opiniones personales." }
+                ]
+            }
+        ];
+
+        // Variables de estado
+        let currentSlide = 0;
+        const totalSlides = temas.length;
+        let menuOpen = false;
+
+        // Elementos del DOM
+        const menuList = document.getElementById('menu-list');
+        const slideContainer = document.getElementById('slide-container');
+        const progressInfo = document.getElementById('progress-info');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        // Generar el menú y las diapositivas
+        function init() {
+            temas.forEach((tema, index) => {
+                // Menú
+                const li = document.createElement('li');
+                li.textContent = tema.titulo;
+                li.onclick = () => {
+                    goToSlide(index);
+                    toggleMenu(); // Cierra el menú al seleccionar
+                };
+                menuList.appendChild(li);
+
+                // Diapositiva (Estructura de dos columnas)
+                const slideDiv = document.createElement('div');
+                slideDiv.className = `slide ${index === 0 ? 'active' : ''}`;
+                slideDiv.id = `slide-${index}`;
+
+                let preguntasHTML = '';
+                tema.preguntas.forEach((q, i) => {
+                    preguntasHTML += `
+                        <details>
+                            <summary>${i + 1}. ${q.p}</summary>
+                            <p>${q.r}</p>
+                        </details>
+                    `;
+                });
+
+                slideDiv.innerHTML = `
+                    <!-- COLUMNA IZQUIERDA: Título, Intro, Mapa, Guion -->
+                    <div class="col-izq">
+                        <h2>${tema.titulo}</h2>
+                        <div class="introduccion">
+                            <strong>Introducción:</strong> ${tema.introduccion}
+                        </div>
+                        <div class="mapa-conceptual">
+                            ${tema.mapa}
+                        </div>
+                        <div class="guion">
+                            ${tema.guion}
+                        </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: Preguntas -->
+                    <div class="col-der">
+                        <h3>Preguntas y Respuestas Clave</h3>
+                        ${preguntasHTML}
+                    </div>
+                `;
+                slideContainer.appendChild(slideDiv);
+            });
+
+            updateUI();
+        }
+
+        // Función para abrir/cerrar menú
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            if (menuOpen) {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            } else {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Función para cambiar de diapositiva
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            
+            // Ocultar actual
+            document.querySelector('.slide.active').classList.remove('active');
+            
+            // Mostrar nueva
+            currentSlide = index;
+            document.getElementById(`slide-${currentSlide}`).classList.add('active');
+            
+            // Actualizar menú
+            updateUI();
+            
+            // Resetear scroll de las columnas al inicio
+            document.querySelectorAll('.col-izq, .col-der').forEach(el => el.scrollTop = 0);
+        }
+
+        // Actualizar la interfaz
+        function updateUI() {
+            Array.from(menuList.children).forEach((li, i) => {
+                li.classList.toggle('active', i === currentSlide);
+            });
+
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+
+            progressInfo.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        // Navegación
+        function changeSlide(direction) {
+            goToSlide(currentSlide + direction);
+        }
+
+        // Inicializar
+        init();
+    </script>
+</body>
+</html>
